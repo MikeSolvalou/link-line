@@ -1,5 +1,12 @@
-/*for linkline script functionality*/
-svg.-linkline-linkhitbox{background-color:#06c4;}
+svg#-linkline-layer{
+  /*make svg cover whole document*/
+  position:absolute; top:0; left:0; width:100%;
 
-/*for debugging only*/
-svg{border:1px solid #0004;}  /*black, 25% opacity*/
+  background-color:rgba(200,200,200,0.2);/*for debug only*/
+}
+
+rect#-linkline-hitbox{
+  fill:rgba(0,100,200,0.3);
+}
+
+path.-linkline-linkline{fill:none; stroke: black; stroke-width: 3;}
