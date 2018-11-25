@@ -84,6 +84,19 @@ const linkline={
     //position hitbox over hovered link
     positionHitbox();
 
+    //fix for case when cursor leaves hitbox before mouseleave event is being listened for
+    svg.addEventListener('mousemove', function(e){
+      //if cursor is outside hitbox, call undrawAll
+      console.log(`${e.clientX},${e.clientY}`);
+      console.log(`${rect0.left+scrollX},${rect0.top+scrollY}   ${rect0.right+scrollX},${rect0.bottom+scrollY}`);
+
+      if(e.clientX < rect0.left || e.clientX > rect0.right
+        || e.clientY < rect0.top || e.clientY > rect0.bottom){
+          linkline.undrawAll();
+        }
+
+    }, {once:true});
+
     //show svg
     svg.style.display='unset';
     //end of draw function, only function definitions past here
