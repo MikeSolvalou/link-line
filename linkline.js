@@ -44,6 +44,35 @@ const linkline={
   },
 
 
+  lastScrollYOffset:0,
+
+  //adjust endpoints of lines to fixed-position links to match scrolling
+  handleScroll: function(e){
+    //latch current scroll offset
+    var scrollY=window.scrollY;
+
+    //adjust endpoints of all lines to a fixed :link
+    // get list of relevant lines
+    var paths=document.getElementById('-linkline-layer').getElementsByClassName('-linkline-endfixed');
+
+    for(var path of paths){
+      // parse end y coordinate from path string
+      var dString=path.getAttribute('d');
+      var commaPos=dString.lastIndexOf(',');
+      var rect1CenterYreldoc=parseInt(dString.substring(commaPos+1));
+
+      // adjust end y coordinate by scrolled distance
+      rect1CenterYreldoc += (scrollY - linkline.lastScrollYOffset);
+
+      // set new path string
+      path.setAttribute('d', dString.substring(0, commaPos+1) + rect1CenterYreldoc);
+    }
+
+    //store latched scroll offset
+    linkline.lastScrollYOffset=scrollY;
+  },
+
+
   //hide the svg and undraw graphics
   undrawAll: function(){
     //hide -linkline-layer svg
@@ -56,9 +85,12 @@ const linkline={
       svg.removeChild(line);
     }
 
-    //clear href attribute on hitbox link
+    //hitbox links to nowhere while graphcis are down
     var hitboxLink=document.getElementById('-linkline-hitbox-link');
     hitboxLink.setAttribute('href', '');
+
+    //don't listen for these while graphics are down
+    window.removeEventListener('scroll', linkline.handleScroll);
   },
 
 
@@ -106,6 +138,11 @@ const linkline={
     //fix for case when cursor leaves hitbox before mouseleave event is being listened for
     svg.addEventListener('mousemove', earlyExitCheck, {once:true});
 
+    //adjust lines to links with position:fixed; while scrolling
+    //TODO: scroll events are fired once per frame(?); might need to ignore some for performance
+    window.addEventListener('scroll', linkline.handleScroll);
+    linkline.lastScrollYOffset=window.scrollY;
+
     //show svg
     svg.style.display='unset';
     //end of draw function, only function definitions past here
@@ -144,9 +181,16 @@ const linkline={
 
       //create svg path element for line
       var path=document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      path.setAttribute('d', `M ${rect0CenterXreldoc},${rect0CenterYreldoc}
-        L ${rect1CenterXreldoc},${rect1CenterYreldoc}`);
+      path.setAttribute('d', `M ${rect0CenterXreldoc},${rect0CenterYreldoc} L ${rect1CenterXreldoc},${rect1CenterYreldoc}`);
       path.setAttribute('class', '-linkline-linkline');
+
+      //if path endpoint (or any ancestor) has fixed position, mark with a class
+      for(var element=link; element!==null; element=element.parentElement){
+        if(window.getComputedStyle(element).position==='fixed'){
+          path.setAttribute('class', path.getAttribute('class') + ' -linkline-endfixed');
+          break;
+        }
+      }
 
       //add path to svg; ensure hitbox is last so it gets drawn over the lines
       svg.insertBefore(path, hitboxLink);
