@@ -1,8 +1,7 @@
 /*
 a hidden svg covers the whole document; graphics are drawn on this svg;
-a hitbox (<rect>) covers the :link, but resides on the svg layer,
+a hitbox (<rect>) covers the hovered :link, but resides on the svg layer,
 so it can detect when the mouse moves off the link;
-the <rect> is wrapped in an <a> (svg namespace) so it can respond to clicks;
 */
 
 //pack everything into linkline object
@@ -21,23 +20,32 @@ const linkline={
     svg.id='-linkline-layer';
     svg.style.display='none';
 
-    // setting height:100%; in CSS just sets the SVG to the viewport height(!?), not document height
-    // also, document height may grow as images load
-    svg.setAttribute('height', document.body.clientHeight); //incase window has already loaded
-    window.addEventListener('load', function() {           //incase window is still loading
-      svg.setAttribute('height', document.body.clientHeight);
+    // set svg's height and width
+    //  setting height:100%; in CSS just sets the SVG to:
+    //  - the viewport height if its positioning context is the root element
+    //  - the containing element's height otherwise
+    //  same for width
+    // set now incase document has already loaded
+    // -2 pixel buffer stops browser scrollbars appearing when they shouldn't
+    svg.setAttribute('height', document.body.clientHeight-2);
+    svg.setAttribute('width', document.body.clientWidth-2);
+
+    //  document height (and width?) may grow as document loads
+    window.addEventListener('load', function() {    //incase window is still loading
+      svg.setAttribute('height', document.body.clientHeight-2);
+      svg.setAttribute('width', document.body.clientWidth-2);
     });
 
-    document.body.appendChild(svg);
+    //  document width changes on window resize, but height does not
+    window.addEventListener('resize', function(){
+      svg.setAttribute('width', document.body.clientWidth-2);
+    });
 
-    //add clickable rect to act as hitbox to detect when mouse leaves a link, or link is clicked
-    const hitboxLink=document.createElementNS('http://www.w3.org/2000/svg', 'a');
-    hitboxLink.id='-linkline-hitbox-link';
-    svg.appendChild(hitboxLink);
+    document.body.appendChild(svg); //stow in body for now
 
     const hitbox=document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     hitbox.id='-linkline-hitbox';
-    hitboxLink.appendChild(hitbox);
+    svg.appendChild(hitbox);
 
     //add handler for mouseleave event on hitbox
     hitbox.addEventListener('mouseleave', linkline.undrawAll);
@@ -79,44 +87,59 @@ const linkline={
     var svg=document.getElementById('-linkline-layer');
     svg.style.display='none';
 
+    //remove inline styling for nudging svg
+    svg.style.left=null;
+    svg.style.top=null;
+
     //undraw all lines
     var lines=svg.querySelectorAll('.-linkline-linkline');
     for(line of lines){
       svg.removeChild(line);
     }
 
-    //hitbox links to nowhere while graphcis are down
-    var hitboxLink=document.getElementById('-linkline-hitbox-link');
-    hitboxLink.setAttribute('href', '');
-
     //don't listen for these while graphics are down
     window.removeEventListener('scroll', linkline.handleScroll);
   },
 
 
-  //draw graphics highlighting :links with the same href value as this one
+  //draw graphics highlighting :links with the same href value as the event target
   draw: function(e){
     //get bounding rect for :link being hovered over (e.target)
     //provides top, bottom, left and right values rel to top left of viewport
     //see https://plainjs.com/javascript/styles/get-the-position-of-an-element-relative-to-the-document-24/
     var rect0=e.target.getBoundingClientRect();
 
-    //get values indicating how far page has been scrolled
-    var scrollY = window.scrollY; //unavailable in IE
-    var scrollX = window.scrollX; //unavailable in IE
-
     //rect0 center, rel to tl corner of viewport
     var rect0CenterX = (rect0.left + rect0.right)/2;
     var rect0CenterY = (rect0.top + rect0.bottom)/2;
+
+    //get values indicating how far page has been scrolled
+    var scrollY = window.scrollY; //unavailable in IE
+    var scrollX = window.scrollX; //unavailable in IE
 
     //rect0 center, rel to tl corner of document
     var rect0CenterXreldoc = rect0CenterX + scrollX;
     var rect0CenterYreldoc = rect0CenterY + scrollY;
 
-    //need these pointers in-scope at drawLine function call
+    //need these pointers
     var svg=document.getElementById('-linkline-layer');
     var hitbox=document.getElementById('-linkline-hitbox');
-    var hitboxLink=document.getElementById('-linkline-hitbox-link');
+
+    //put svg inside hovered :link
+    e.target.appendChild(svg);
+
+    //If svg's positioning context is not the root element, nudge it so its top-left
+    //corner coincides with the root element's top left corner.
+    // Search for :link's nearest positioned ancestor.
+    for(var element=e.target; element!==null; element=element.parentElement){
+      //if a positioned ancestor is found, get its bounding rect and nudge the svg accordingly
+      if(window.getComputedStyle(element).position!=='static'){
+        var posContextRect=element.getBoundingClientRect();
+        svg.style.left = (-posContextRect.left-scrollX)+'px';
+        svg.style.top = (-posContextRect.top-scrollY)+'px';
+        break;
+      }
+    }
 
     //draw a line from hovered :link to every other :link with same href value
     var links=document.querySelectorAll(`:link[href="${e.target.href}"]`);
@@ -125,21 +148,18 @@ const linkline={
       if(link===e.target)
         continue;
 
-      var rect1=link.getBoundingClientRect();
-      drawLine(rect1);
+      drawLine();
     }
 
     //position hitbox over hovered link
     positionHitbox();
 
-    //set hitboxLink target
-    hitboxLink.setAttribute('href', e.target.href)
-
     //fix for case when cursor leaves hitbox before mouseleave event is being listened for
     svg.addEventListener('mousemove', earlyExitCheck, {once:true});
 
     //adjust lines to links with position:fixed; while scrolling
-    //TODO: scroll events are fired once per frame(?); might need to ignore some for performance
+    // TODO: scroll events are fired once per frame(?); should ignore some for performance
+    // TODO: if there are no lines to position:fixed; links, don't add this handler
     window.addEventListener('scroll', linkline.handleScroll);
     linkline.lastScrollYOffset=window.scrollY;
 
@@ -160,17 +180,17 @@ const linkline={
     //position the hitbox (#-linkline-hitbox) so that it covers the hovered :link
     function positionHitbox(){
       //set hitbox's boundaries to rect0's boundaries, plus a buffer
-      const buff=2;
-
-      hitbox.setAttribute('x', rect0.left + scrollX - buff);
-      hitbox.setAttribute('y', rect0.top + scrollY - buff);
-      hitbox.setAttribute('width', rect0.right - rect0.left + buff + buff);
-      hitbox.setAttribute('height', rect0.bottom - rect0.top + buff + buff);
+      hitbox.setAttribute('x', rect0.left + scrollX - 2);
+      hitbox.setAttribute('y', rect0.top + scrollY - 2);
+      hitbox.setAttribute('width', rect0.right - rect0.left + 4);
+      hitbox.setAttribute('height', rect0.bottom - rect0.top + 4);
     }
 
 
     //draw line from center of rect0 to center of rect1
-    function drawLine(rect1){
+    function drawLine(){
+      var rect1=link.getBoundingClientRect();
+
       //rect1 center, rel to tl corner of viewport
       var rect1CenterX = (rect1.left + rect1.right)/2;
       var rect1CenterY = (rect1.top + rect1.bottom)/2;
@@ -193,7 +213,7 @@ const linkline={
       }
 
       //add path to svg; ensure hitbox is last so it gets drawn over the lines
-      svg.insertBefore(path, hitboxLink);
+      svg.insertBefore(path, hitbox);
     }
   }
 };

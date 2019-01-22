@@ -1,6 +1,7 @@
 svg#-linkline-layer{
-  /*make svg cover whole document*/
-  position:absolute; top:0; left:0; width:100%;
+  /*Make svg cover whole document. Override top and left in js with
+    html style attr if the positioning context is not the root element.*/
+  position:absolute; top:0; left:0;
   z-index:1000;
 
   background-color:rgba(200,200,200,0.2);/*for debug only*/

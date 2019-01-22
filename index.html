@@ -4,27 +4,62 @@
 <meta charset="utf-8">
 <title>Linkline Demo</title>
 <link href=linkline.css rel=stylesheet type=text/css>
-<style>
-a{display:inline-block; padding:10px; margin:10px;}
-.right{float:right;}
-
-body{padding-top:50px;}
-.fix{
-  position:fixed; top:0; left:0;
-  border:1px solid black; background-color:white;
-}
-</style>
+<link href=style.css rel=stylesheet type=text/css>
 </head>
 <body>
-<div class=fix>||Fixed box||<a href='http://www.google.co.nz/'>Google</a></div>
-<h1>Linkline Demo</h1>
+<nav>
+  <div class=menuitem>Google >
+    <div class=submenu>
+      <a href='http://www.google.co.nz/'>
+        <div class=menuitem>Search</div>
+      </a>
+      <a href='https://www.google.co.nz/maps?hl=en'>
+        <div class=menuitem>Maps</div>
+      </a>
+      <a href='https://translate.google.com/'>
+        <div class=menuitem>Translate</div>
+      </a>
+    </div>
+  </div>
 
-<a class=right href='http://www.google.co.nz/'>google</a>
-<a href='http://www.youtube.com/'>youtube</a>
-<br>
-<a href='http://www.google.co.nz/'>google</a>
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
-<a href='http://www.google.co.nz/'><img src='googlelogo_color_272x92dp.png'></a>
+  <div class=menuitem>Wikipedia >
+    <div class=submenu>
+      <a href='https://en.wikipedia.org/'>
+        <div class=menuitem>English</div>
+      </a>
+      <a href='https://ja.wikipedia.org/'>
+        <div class=menuitem>Japanese</div>
+      </a>
+    </div>
+  </div>
+
+  <a href='http://www.trademe.co.nz/'>
+    <div class=menuitem>Trademe</div>
+  </a>
+
+  <a href='http://www.trademe.co.nz/'>
+    <div class=menuitem>Trademe</div>
+  </a>
+</nav>
+
+<main>
+  <hr>
+  <h1>Linkline Demo</h1>
+
+  <aside><a href='http://www.google.co.nz/'>google</a></aside>
+
+  <a href='http://www.youtube.com/'>youtube</a>
+  <br>
+  <a href='http://www.google.co.nz/'>google</a>
+  <br>
+  <a href='http://www.trademe.co.nz/'>trademe</a>
+  <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+  <a href='http://www.google.co.nz/' style="display:inline-block;">
+    <!--using style attribute as a hack; without it, bounding rect of <a>
+    element doesn't surround the image it wraps.-->
+    <img src='googlelogo_color_272x92dp.png'>
+  </a>
+</main>
 
 <script src=linkline.js></script>
 
